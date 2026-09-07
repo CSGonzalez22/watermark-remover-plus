@@ -27,6 +27,7 @@ separates them, because the distinction is the whole story:
 | **A** | Invisible Unicode, homoglyphs, typographic tells | **Yes.** Deterministic and verifiable. |
 | **B** | Statistical text watermark (SynthID-Text)	Not by deleting anything. It lives in the token sequence. Only a rewrite touches it, and there is no public detector, so the result cannot be verified. |
 | **C** | File metadata: C2PA manifests, XMP, EXIF, doc properties | **Yes.** Deterministic and verifiable. |
+
 Any tool that claims to "remove the SynthID watermark" from text with a character filter is selling you nothing. Layer A and C are real work with a verifiable result; Layer B is a rewrite with an honest asterisk.
 
 ## Install
