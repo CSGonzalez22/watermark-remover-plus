@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "watermark-remover-plus"
+version = "0.1.0"
+description = "Strip AI provenance markers - invisible Unicode, homoglyphs, C2PA/XMP/EXIF - from content you own."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["watermark", "c2pa", "synthid", "provenance", "metadata", "unicode"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Text Processing",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pikepdf>=8"]
+images = ["Pillow>=10"]
+audio = ["mutagen>=1.47"]
+all = ["pikepdf>=8", "Pillow>=10", "mutagen>=1.47"]
+
+[project.urls]
+Homepage = "https://github.com/CSGonzalez22/watermark-remover-plus"
+
+[project.scripts]
+wmrm = "wmrm.cli:main"
+
+[tool.setuptools]
+packages = ["wmrm"]
