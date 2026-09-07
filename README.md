@@ -200,15 +200,6 @@ intact, SVG metadata removal, and OOXML part dropping.
 
 ## Scope and limits
 
-Built for content you own: stripping copy-paste Unicode junk, removing metadata
-before publishing (a C2PA manifest carries edit history and timestamps you may
-not want public), and reducing false positives from AI-detector tooling on work
-you actually wrote or heavily edited.
-
-Not built for, and not appropriate for, passing off AI-generated work as human
-where disclosure is required - academic submissions, legal filings, journalism,
-regulated advertising. Layer B is best-effort and unverifiable; treating its
-output as proof of anything is a mistake.
 
 Prior art and inspiration: [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover),
 which covers more formats behind an HTTP service. This one trades that for a
