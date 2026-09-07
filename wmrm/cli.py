@@ -76,7 +76,10 @@ def cmd_clean(args) -> int:
         if args.in_place:
             tmp = src.with_suffix(src.suffix + ".tmp")
             findings = filelayer.clean_file(src, tmp, text_opts=opts)
-            tmp.replace(dst)
+            # A handler that skipped the file never wrote tmp. Leave the
+            # original alone rather than crashing on the rename.
+            if tmp.exists():
+                tmp.replace(dst)
         else:
             findings = filelayer.clean_file(src, dst, text_opts=opts)
         report.extend(findings, str(dst))

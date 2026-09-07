@@ -1,7 +1,7 @@
 # watermark-remover-plus
 
-Strip AI provenance markers from content you own — invisible Unicode, homoglyphs,
-and C2PA / XMP / EXIF metadata — and get an honest, sourced account of the one
+Strip AI provenance markers from content you own - invisible Unicode, homoglyphs,
+and C2PA / XMP / EXIF metadata - and get an honest, sourced account of the one
 marker class that **cannot** be stripped.
 
 Zero dependencies for the core. One CLI. One Claude Code skill.
@@ -14,7 +14,7 @@ cat draft.md | python -m wmrm.cli clean    # pipes
 
 ## Why this exists
 
-Since **2026-08-02** — the EU AI Act Article 50 deadline — the major labs mark
+Since **2026-08-02** - the EU AI Act Article 50 deadline - the major labs mark
 generated content. Anthropic watermarks all Claude text with SynthID-Text, with
 no opt-out. Google does the same across Gemini. OpenAI signs images and audio
 with C2PA and SynthID. Full breakdown with citations: **[RESEARCH.md](RESEARCH.md)**.
@@ -53,11 +53,11 @@ pip install '.[all]'
 ```
 
 Video (MP4/MOV/WebM/MKV) uses `ffmpeg` from `PATH` if present. Missing optional
-handlers degrade to a skip notice naming the extra — nothing crashes.
+handlers degrade to a skip notice naming the extra - nothing crashes.
 
 ## Usage
 
-### `scan` — report, change nothing
+### `scan` - report, change nothing
 
 ```bash
 wmrm scan draft.md
@@ -67,7 +67,7 @@ wmrm scan ./exports -r --json
 Exits `1` when markers are found, `0` when clean. Useful in a pre-commit hook or
 CI step.
 
-### `clean` — strip layers A and C
+### `clean` - strip layers A and C
 
 ```bash
 wmrm clean photo.jpg               # writes photo.clean.jpg
@@ -79,12 +79,12 @@ Flags: `--nfkc` (full Unicode normalization), `--keep-typography` (leave smart
 quotes and em dashes alone), `--keep-homoglyphs`, `--force` (with `--in-place`,
 skip the backup), `--json`.
 
-Cleaning is **idempotent** — running it twice changes nothing the second time.
+Cleaning is **idempotent** - running it twice changes nothing the second time.
 Non-Latin text is safe: homoglyph substitution only fires inside tokens that
 already contain Latin letters, so Cyrillic or Greek prose passes through
 untouched. Accents are preserved (`Café` stays `Café`).
 
-### `brief` — the Layer B rewrite plan
+### `brief` - the Layer B rewrite plan
 
 ```bash
 wmrm brief article.md > brief.txt
@@ -99,7 +99,7 @@ There is deliberately **no bundled ML model**. If you are running this from an
 agent, the agent is already a better paraphraser than anything that would fit in
 this repo.
 
-### `diff` — did the rewrite actually change anything
+### `diff` - did the rewrite actually change anything
 
 ```bash
 wmrm diff original.md rewritten.md
@@ -107,7 +107,7 @@ wmrm diff original.md rewritten.md
 ```
 
 Exits `1` if too much of the original token sequence survived. This measures
-lexical overlap, **not** watermark presence — no public detector exists to check
+lexical overlap, **not** watermark presence - no public detector exists to check
 that against.
 
 ## What each format loses
@@ -115,11 +115,11 @@ that against.
 | Format | Removed |
 |---|---|
 | PNG | `caBX` (C2PA), `iTXt`/`tEXt`/`zTXt` (XMP, comments), `eXIf`, `iCCP` |
-| JPEG | `APP1`–`APP15` (EXIF, XMP, C2PA JUMBF), `COM` |
+| JPEG | `APP1`-`APP15` (EXIF, XMP, C2PA JUMBF), `COM` |
 | SVG | `<metadata>`, RDF blocks, `c2pa:`/`dc:`/`xmp:` attributes, comments |
 | docx / xlsx / pptx / odt / epub | `docProps/*`, `meta.xml`, C2PA parts, archive timestamps |
 | PDF | `/Info`, XMP `/Metadata`, embedded name tree |
-| WebP / TIFF / GIF / BMP / AVIF / HEIC | everything — re-encoded from pixels only |
+| WebP / TIFF / GIF / BMP / AVIF / HEIC | everything - re-encoded from pixels only |
 | MP3 / FLAC / M4A / OGG | all tags |
 | MP4 / MOV / WebM | container metadata (`-map_metadata -1`, stream copy) |
 | txt / md / html / json / csv | layer A only |
@@ -138,9 +138,55 @@ cp -r skills/watermark-remover-plus ~/.claude/skills/
 ```
 
 Then just ask: *"clean the provenance markers out of report.docx"*. The skill
-runs `scan`, runs `clean`, and — for text where the statistical watermark
-matters — drives the Layer B rewrite block by block and checks the result with
+runs `scan`, runs `clean`, and - for text where the statistical watermark
+matters - drives the Layer B rewrite block by block and checks the result with
 `wmrm diff`.
+
+## Automatic cleaning (Claude Code hook)
+
+To clean every file an agent writes, without asking:
+
+```bash
+cp hooks/wmrm_autoclean.py ~/.claude/hooks/
+```
+
+Then register it in `~/.claude/settings.json`, alongside any hooks you already
+have - append a new entry, don't replace the array:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"~/.claude/hooks/wmrm_autoclean.py\"",
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Two scopes, deliberately different:
+
+| Files | Cleaned |
+|---|---|
+| `.md` `.txt` `.rst` `.html` | Everything - invisibles, smart punctuation, homoglyphs |
+| `.py` `.js` `.ts` `.go` `.yml` ... | Invisibles only |
+| Anything else | Untouched |
+
+Source files get the narrow treatment on purpose: normalizing quotes or dashes
+inside code rewrites string literals, which is a behavior change, not a cleanup.
+The hook never blocks - it exits 0 even when `wmrm` is missing or errors - and
+stays silent unless it actually changed something.
+
+What a hook **cannot** do: touch what the model types into the chat, or remove a
+statistical watermark. Hooks fire on tool calls, and Layer B needs a rewrite.
 
 ## Tests
 
@@ -160,7 +206,7 @@ not want public), and reducing false positives from AI-detector tooling on work
 you actually wrote or heavily edited.
 
 Not built for, and not appropriate for, passing off AI-generated work as human
-where disclosure is required — academic submissions, legal filings, journalism,
+where disclosure is required - academic submissions, legal filings, journalism,
 regulated advertising. Layer B is best-effort and unverifiable; treating its
 output as proof of anything is a mistake.
 

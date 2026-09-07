@@ -204,11 +204,36 @@ NATIVE_EXT = {".png", ".jpg", ".jpeg", ".svg", ".pdf"}
 
 
 def supported(path: Path) -> bool:
+    """Extensions a recursive walk will pick up.
+
+    Deliberately conservative: it does not include source code. A named file is
+    still handled via the text sniff in `clean_file`, so `wmrm clean main.py`
+    works while `wmrm clean . -r` will not rewrite a whole source tree.
+    """
     e = path.suffix.lower()
     return (
         e in NATIVE_EXT or e in ZIP_EXT or e in TEXT_EXT
         or e in PILLOW_EXT or e in AUDIO_EXT or e in VIDEO_EXT
     )
+
+
+def sniff_text(path: Path) -> str | None:
+    """Return decoded contents if this is plain UTF-8 text, else None.
+
+    Cheaper to maintain than an extension list, and it covers every source
+    language without one. A NUL byte means binary; anything that is not valid
+    UTF-8 is left alone rather than guessed at.
+    """
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    if b"\x00" in data:
+        return None
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
 
 
 def clean_file(src: Path, dst: Path, *, text_opts: dict | None = None) -> list[Finding]:
@@ -239,12 +264,12 @@ def clean_file(src: Path, dst: Path, *, text_opts: dict | None = None) -> list[F
         return strip_audio(src, dst)
     if ext in VIDEO_EXT:
         return strip_video(src, dst)
-    if ext in TEXT_EXT or not ext:
-        raw = src.read_text(encoding="utf-8", errors="replace")
-        out, f = textlayer.clean(raw, **(text_opts or {}))
-        dst.write_text(out, encoding="utf-8", newline="")
-        return f
-    return [Finding("file", "skipped", f"no handler for {ext}")]
+    raw = sniff_text(src)
+    if raw is None:
+        return [Finding("file", "skipped", f"no handler for {ext or 'this file'}")]
+    out, f = textlayer.clean(raw, **(text_opts or {}))
+    dst.write_text(out, encoding="utf-8", newline="")
+    return f
 
 
 def scan_file(src: Path) -> list[Finding]:
@@ -267,8 +292,9 @@ def scan_file(src: Path) -> list[Finding]:
                     for n in z.namelist()
                     if ZIP_DROP.search(n)
                 ]
-        if ext in TEXT_EXT or not ext:
-            return textlayer.scan(src.read_text(encoding="utf-8", errors="replace"))
+        raw = sniff_text(src)
+        if raw is not None:
+            return textlayer.scan(raw)
     except (ValueError, OSError, zipfile.BadZipFile) as e:
         return [Finding("file", "error", str(e))]
     return [Finding("file", "unknown", f"{ext}: binary metadata not scanned, run clean to strip")]

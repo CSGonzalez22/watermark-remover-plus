@@ -108,6 +108,38 @@ class ZipLayer(unittest.TestCase):
             self.assertEqual(sum(1 for f in findings if f.kind == "ooxml-part"), 2)
 
 
+class Dispatch(unittest.TestCase):
+    def test_source_file_is_cleaned_by_sniff(self):
+        # .py is in no extension list; content sniffing must still catch it.
+        with TemporaryDirectory() as d:
+            src = Path(d) / "mod.py"
+            dst = Path(d) / "out.py"
+            src.write_text('x = "a​b"\n', encoding="utf-8")
+            findings = files.clean_file(src, dst, text_opts={"typography": False})
+            self.assertEqual(dst.read_text(encoding="utf-8"), 'x = "ab"\n')
+            self.assertTrue(findings)
+
+    def test_binary_is_skipped_not_mangled(self):
+        with TemporaryDirectory() as d:
+            src = Path(d) / "blob.dat"
+            dst = Path(d) / "out.dat"
+            src.write_bytes(b"\x00\x01\x02binary")
+            findings = files.clean_file(src, dst)
+            self.assertFalse(dst.exists())
+            self.assertEqual(findings[0].kind, "skipped")
+
+    def test_in_place_survives_a_skipped_file(self):
+        # Regression: cmd_clean used to crash renaming a tmp that no handler wrote.
+        from wmrm import cli
+
+        with TemporaryDirectory() as d:
+            src = Path(d) / "blob.dat"
+            src.write_bytes(b"\x00\xffkeep me")
+            rc = cli.main(["clean", str(src), "--in-place", "--force"])
+            self.assertEqual(rc, 0)
+            self.assertEqual(src.read_bytes(), b"\x00\xffkeep me")
+
+
 class RewriteLayer(unittest.TestCase):
     def test_blocks_and_overlap(self):
         para = "word " * 100
